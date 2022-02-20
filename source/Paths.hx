@@ -1,10 +1,12 @@
 package;
 
-import flixel.graphics.FlxGraphic;
 import flixel.FlxG;
 import flixel.graphics.frames.FlxAtlasFrames;
 import openfl.utils.AssetType;
 import openfl.utils.Assets as OpenFlAssets;
+import sys.io.File;
+import sys.FileSystem;
+import openfl.display.BitmapData;
 
 class Paths
 {
@@ -51,7 +53,7 @@ class Paths
 		return 'assets/$file';
 	}
 
-	inline static public function file(file:String, ?library:String, type:AssetType = TEXT)
+	inline static public function file(file:String, type:AssetType = TEXT, ?library:String)
 	{
 		return getPath(file, type, library);
 	}
@@ -68,7 +70,17 @@ class Paths
 
 	inline static public function txt(key:String, ?library:String)
 	{
+		return getPath('data/$key.txt', TEXT, library);
+	}
+
+	inline static public function txtNew(key:String, ?library:String)
+	{
 		return getPath('$key.txt', TEXT, library);
+	}
+
+	inline static public function xmlNew(key:String, ?library:String)
+	{
+		return getPath('$key.xml', TEXT, library);
 	}
 
 	inline static public function xml(key:String, ?library:String)
@@ -96,14 +108,52 @@ class Paths
 		return getPath('music/$key.$SOUND_EXT', MUSIC, library);
 	}
 
-	inline static public function voices(song:String)
+	inline static public function inst2(song:String, ?library:String)
 	{
 		var songLowercase = StringTools.replace(song, " ", "-").toLowerCase();
 			switch (songLowercase) {
 				case 'dad-battle': songLowercase = 'dadbattle';
 				case 'philly-nice': songLowercase = 'philly';
 			}
-		return 'songs:assets/songs/${songLowercase}/Voices.$SOUND_EXT';
+
+		return getPath('music/customsongs/${songLowercase}/Inst.$SOUND_EXT', MUSIC, library);
+	}
+
+	inline static public function voices2(song:String, ?library:String)
+	{
+		var songLowercase = StringTools.replace(song, " ", "-").toLowerCase();
+			switch (songLowercase) {
+				case 'dad-battle': songLowercase = 'dadbattle';
+				case 'philly-nice': songLowercase = 'philly';
+			}
+
+		return getPath('music/customsongs/${songLowercase}/Voices.$SOUND_EXT', MUSIC, library);
+	}
+
+	inline static public function voices(song:String)
+	{
+		var songLowercase = StringTools.replace(song, " ", "-").toLowerCase();
+			switch (songLowercase) {
+				case 'dad-battle': songLowercase = 'dadbattle';
+				case 'philly-nice': songLowercase = 'philly';
+				case 'scary-swings': songLowercase = 'scary swings';
+			}
+
+		var pre:String = "";
+		var suf:String = "";
+
+		if (PlayState.isNeonight)
+			suf = 'NN';
+		if (PlayState.isVitor)
+			suf = 'V';
+		if (PlayState.isBETADCIU && PlayState.storyDifficulty == 5)		
+			suf = 'Guest';
+		if (PlayState.isBETADCIU && songLowercase == 'kaboom')		
+			suf = 'BETADCIU';
+		if (Main.isMegalo && songLowercase == 'hill-of-the-void')		
+			suf = 'Megalo';
+
+		return 'songs:assets/songs/${songLowercase}/'+pre+'Voices'+suf+'.$SOUND_EXT';
 	}
 
 	inline static public function inst(song:String)
@@ -112,8 +162,23 @@ class Paths
 			switch (songLowercase) {
 				case 'dad-battle': songLowercase = 'dadbattle';
 				case 'philly-nice': songLowercase = 'philly';
+				case 'scary-swings': songLowercase = 'scary swings';
+				case 'my-sweets': songLowercase = 'my sweets';
 			}
-		return 'songs:assets/songs/${songLowercase}/Inst.$SOUND_EXT';
+
+		var pre:String = "";
+		var suf:String = "";
+
+		if (Main.noCopyright && song.toLowerCase() == "sharkventure")
+			pre = 'Alt_';		
+		if (PlayState.isNeonight)
+			suf = 'NN';
+		if (PlayState.isVitor)		
+			suf = 'V';
+		if (PlayState.isBETADCIU && PlayState.storyDifficulty == 5)		
+			suf = 'Guest';
+	
+		return 'songs:assets/songs/${songLowercase}/'+pre+'Inst'+suf+'.$SOUND_EXT';
 	}
 
 	inline static public function image(key:String, ?library:String)
@@ -121,33 +186,34 @@ class Paths
 		return getPath('images/$key.png', IMAGE, library);
 	}
 
+	inline static public function image2(key:String, ?library:String)
+	{
+		return getPath('images/$key', IMAGE, library);
+	}
+
+	inline static public function jsonNew(key:String, ?library:String)
+	{
+		return getPath('$key.json', TEXT, library);
+	}
+
+	//for modding plus shit
+	inline static public function jsoncNew(key:String, ?library:String)
+	{
+		return getPath('$key.jsonc', TEXT, library);
+	}
+
 	inline static public function font(key:String)
 	{
 		return 'assets/fonts/$key';
 	}
 
-	inline static public function getSparrowAtlas(key:String, ?library:String, ?isCharacter:Bool = false)
+	inline static public function getSparrowAtlas(key:String, ?library:String)
 	{
-		if (isCharacter)
-			return FlxAtlasFrames.fromSparrow(image('characters/$key', library), file('images/characters/$key.xml', library));
-			
 		return FlxAtlasFrames.fromSparrow(image(key, library), file('images/$key.xml', library));
 	}
 
-	#if (cpp && !mobile)
-	inline static public function imageCached(key:String):FlxGraphic
+	inline static public function getPackerAtlas(key:String, ?library:String)
 	{
-		var data = Caching.bitmapData.get(key);
-		trace('finding ${key} - ${data.bitmap}');
-		return data;
-	}
-	#end
-	
-	inline static public function getPackerAtlas(key:String, ?library:String, ?isCharacter:Bool = false)
-	{
-		if (isCharacter)
-			return FlxAtlasFrames.fromSpriteSheetPacker(image('characters/$key'), file('images/characters/$key.txt', library));
-
 		return FlxAtlasFrames.fromSpriteSheetPacker(image(key, library), file('images/$key.txt', library));
 	}
 }

@@ -1,6 +1,5 @@
 package;
 
-import flixel.input.gamepad.FlxGamepad;
 import openfl.Lib;
 #if windows
 import llua.Lua;
@@ -17,13 +16,12 @@ import flixel.text.FlxText;
 import flixel.tweens.FlxEase;
 import flixel.tweens.FlxTween;
 import flixel.util.FlxColor;
-import flixel.FlxCamera;
 
 class PauseSubState extends MusicBeatSubstate
 {
 	var grpMenuShit:FlxTypedGroup<Alphabet>;
 
-	var menuItems:Array<String> = ['Resume', 'Restart Song', 'Exit to menu'];
+	var menuItems:Array<String> = ['Resume', 'Restart Song', 'Restart with Cutscene', 'Exit to menu'];
 	var curSelected:Int = 0;
 
 	var pauseMusic:FlxSound;
@@ -34,13 +32,6 @@ class PauseSubState extends MusicBeatSubstate
 	public function new(x:Float, y:Float)
 	{
 		super();
-
-		if (PlayState.instance.useVideo)
-		{
-			menuItems.remove("Resume");
-			if (GlobalVideo.get().playing)
-				GlobalVideo.get().pause();
-		}
 
 		pauseMusic = new FlxSound().loadEmbedded(Paths.music('breakfast'), true, true);
 		pauseMusic.volume = 0;
@@ -61,7 +52,7 @@ class PauseSubState extends MusicBeatSubstate
 		add(levelInfo);
 
 		var levelDifficulty:FlxText = new FlxText(20, 15 + 32, 0, "", 32);
-		levelDifficulty.text += CoolUtil.difficultyFromInt(PlayState.storyDifficulty).toUpperCase();
+		levelDifficulty.text += CoolUtil.difficultyString();
 		levelDifficulty.scrollFactor.set();
 		levelDifficulty.setFormat(Paths.font('vcr.ttf'), 32);
 		levelDifficulty.updateHitbox();
@@ -98,15 +89,6 @@ class PauseSubState extends MusicBeatSubstate
 		changeSelection();
 
 		cameras = [FlxG.cameras.list[FlxG.cameras.list.length - 1]];
-
-		#if mobileC
-		addVirtualPad(UP_DOWN, A);
-		
-		var camcontrol = new FlxCamera();
-		FlxG.cameras.add(camcontrol);
-		camcontrol.bgColor.alpha = 0;
-		_virtualpad.cameras = [camcontrol];
-		#end
 	}
 
 	override function update(elapsed:Float)
@@ -116,24 +98,12 @@ class PauseSubState extends MusicBeatSubstate
 
 		super.update(elapsed);
 
-		if (PlayState.instance.useVideo)
-			menuItems.remove('Resume');
-
-		var gamepad:FlxGamepad = FlxG.gamepads.lastActive;
-
-		var upPcontroller:Bool = false;
-		var downPcontroller:Bool = false;
-		var leftPcontroller:Bool = false;
-		var rightPcontroller:Bool = false;
+		var upP = controls.UP_P;
+		var downP = controls.DOWN_P;
+		var leftP = controls.LEFT_P;
+		var rightP = controls.RIGHT_P;
+		var accepted = controls.ACCEPT;
 		var oldOffset:Float = 0;
-
-		if (gamepad != null && KeyBinds.gamepad)
-		{
-			upPcontroller = gamepad.justPressed.DPAD_UP;
-			downPcontroller = gamepad.justPressed.DPAD_DOWN;
-			leftPcontroller = gamepad.justPressed.DPAD_LEFT;
-			rightPcontroller = gamepad.justPressed.DPAD_RIGHT;
-		}
 
 		// pre lowercasing the song name (update)
 		var songLowercase = StringTools.replace(PlayState.SONG.song, " ", "-").toLowerCase();
@@ -143,23 +113,17 @@ class PauseSubState extends MusicBeatSubstate
 		}
 		var songPath = 'assets/data/' + songLowercase + '/';
 
-		#if (sys && !mobile)
-		if (PlayState.isSM && !PlayState.isStoryMode)
-			songPath = PlayState.pathToSm;
-		#end
-
-		if (controls.UP_P || upPcontroller)
+		if (upP)
 		{
 			changeSelection(-1);
    
-		}
-		else if (controls.DOWN_P || downPcontroller)
+		}else if (downP)
 		{
 			changeSelection(1);
 		}
 		
 		#if cpp
-			else if (controls.LEFT_P || leftPcontroller)
+			else if (leftP)
 			{
 				oldOffset = PlayState.songOffset;
 				PlayState.songOffset -= 1;
@@ -186,8 +150,7 @@ class PauseSubState extends MusicBeatSubstate
 					cameras = [FlxG.cameras.list[FlxG.cameras.list.length - 1]];
 					offsetChanged = true;
 				}
-			} 
-			else if (controls.RIGHT_P || rightPcontroller)
+			}else if (rightP)
 			{
 				oldOffset = PlayState.songOffset;
 				PlayState.songOffset += 1;
@@ -197,7 +160,7 @@ class PauseSubState extends MusicBeatSubstate
 				{
 					grpMenuShit.clear();
 
-					menuItems = ['Restart Song', 'Exit to menu'];
+					menuItems = ['Restart Song', 'Restart with Cutscene', 'Exit to menu'];
 
 					for (i in 0...menuItems.length)
 					{
@@ -215,35 +178,53 @@ class PauseSubState extends MusicBeatSubstate
 			}
 		#end
 
-		if (controls.ACCEPT && !FlxG.keys.pressed.ALT)
+		if (accepted && !FlxG.keys.pressed.ALT)
 		{
 			var daSelected:String = menuItems[curSelected];
 
-			
 			switch (daSelected)
 			{
 				case "Resume":
 					close();
 				case "Restart Song":
-					PlayState.startTime = 0;
-					if (PlayState.instance.useVideo)
-					{
-						GlobalVideo.get().stop();
-						PlayState.instance.remove(PlayState.instance.videoSprite);
-						PlayState.instance.removedVideo = true;
-					}
-					PlayState.instance.clean();
-					PlayState.firstAttempt = false; //
 					FlxG.resetState();
-				case "Exit to menu":
-					PlayState.firstAttempt = true; //
-					PlayState.startTime = 0;
-					if (PlayState.instance.useVideo)
+					PlayState.showCutscene = false;
+					PlayState.isPixel = false;
+					if (PlayState.SONG.song == 'Takeover')
 					{
-						GlobalVideo.get().stop();
-						PlayState.instance.remove(PlayState.instance.videoSprite);
-						PlayState.instance.removedVideo = true;
+						if (PlayState.downScrollEvent ==  true || PlayState.upScrollEvent ==  true)
+							FlxG.save.data.downscroll = !FlxG.save.data.downscroll;
+						else
+							FlxG.save.data.downscroll = FlxG.save.data.downscroll;
 					}
+				case "Restart with Cutscene":
+					FlxG.resetState();
+					PlayState.showCutscene = true;
+					PlayState.isPixel = false;
+					if (PlayState.SONG.song == 'Takeover')
+					{
+						if (PlayState.downScrollEvent ==  true || PlayState.upScrollEvent ==  true)
+							FlxG.save.data.downscroll = !FlxG.save.data.downscroll;
+						else
+							FlxG.save.data.downscroll = FlxG.save.data.downscroll;
+					}
+				case "Exit to menu":
+					PlayState.isPixel = false;
+					PlayState.showCutscene = false;
+					if (PlayState.SONG.song == 'Takeover')
+					{
+						if (PlayState.downScrollEvent ==  true || PlayState.upScrollEvent ==  true)
+							FlxG.save.data.downscroll = !FlxG.save.data.downscroll;
+						else
+							FlxG.save.data.downscroll = FlxG.save.data.downscroll;
+					}	
+					if(PlayState.loadRep)
+					{
+						FlxG.save.data.botplay = false;
+						FlxG.save.data.scrollSpeed = 1;
+						FlxG.save.data.downscroll = false;
+					}
+					PlayState.loadRep = false;
 					#if windows
 					if (PlayState.luaModchart != null)
 					{
@@ -254,12 +235,7 @@ class PauseSubState extends MusicBeatSubstate
 					if (FlxG.save.data.fpsCap > 290)
 						(cast (Lib.current.getChildAt(0), Main)).setFPSCap(290);
 					
-					PlayState.instance.clean();
-
-					if (PlayState.isStoryMode)
-						FlxG.switchState(new StoryMenuState());
-					else
-						FlxG.switchState(new FreeplayState());
+					FlxG.switchState(new MainMenuState());
 			}
 		}
 
@@ -280,8 +256,6 @@ class PauseSubState extends MusicBeatSubstate
 	function changeSelection(change:Int = 0):Void
 	{
 		curSelected += change;
-		
-		FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
 
 		if (curSelected < 0)
 			curSelected = menuItems.length - 1;

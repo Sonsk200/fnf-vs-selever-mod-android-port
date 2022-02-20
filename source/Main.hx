@@ -1,11 +1,10 @@
 package;
 
-import lime.app.Application;
-#if windows
-import Discord.DiscordClient;
-#end
+
+import webm.WebmPlayer;
 import openfl.display.BlendMode;
 import openfl.text.TextFormat;
+import openfl.display.Application;
 import flixel.util.FlxColor;
 import flixel.FlxG;
 import flixel.FlxGame;
@@ -22,11 +21,22 @@ class Main extends Sprite
 	var gameHeight:Int = 720; // Height of the game in pixels (might be less / more in actual pixels depending on your zoom).
 	var initialState:Class<FlxState> = TitleState; // The FlxState the game starts with.
 	var zoom:Float = -1; // If -1, zoom is automatically calculated to fit the window dimensions.
-	var framerate:Int = 60; // How many frames per second the game should run at.
+	var framerate:Int = 120; // How many frames per second the game should run at.
 	var skipSplash:Bool = true; // Whether to skip the flixel splash screen that appears in release mode.
 	var startFullscreen:Bool = false; // Whether to start the game in fullscreen on desktop targets
 
-	public static var watermarks = true; // Whether to put Kade Engine literally anywhere
+	public static var watermarks = true; // Whether to put Kade Engine liteartly anywhere
+	public static var noCopyright:Bool = false; // For Sharkventure Copyright Stuff
+	public static var isHidden:Bool = false; //Lol Hidden Menu Stuff
+	public static var seenMessage:Bool = false; //Lol Hidden Restore Shit
+	public static var restoreUnlocked:Bool = false; //Lol Hidden Restore Shit
+	public static var realDeath:Bool = false; //now unused
+	public static var cursedUnlocked:Bool = false; //Lol cursed cocoa Shit
+	public static var deathHolo:Bool = false; //Lol Hidden deathmatch Shit
+	public static var hiddenSongs:Array<String> = ['hunger', 'diva', 'sorrow', 'shinkyoku', 'norway', 'haachama-ex']; //Lol Hidden  stuff
+	public static var keyAmmo:Array<Int> = [4, 6, 9, 5];
+	public static var dataJump:Array<Int> = [8, 12, 18];
+	public static var isMegalo:Bool = false;
 
 	// You can pretty much ignore everything from here on - your code should go in your states.
 
@@ -78,33 +88,37 @@ class Main extends Sprite
 			gameHeight = Math.ceil(stageHeight / zoom);
 		}
 
-		#if !cpp
-		framerate = 60;
-		#end
+		initialState = TitleState;
+		
+		game = new FlxGame(gameWidth, gameHeight, initialState, zoom, framerate, framerate, skipSplash, startFullscreen);
 
-		#if (cpp && !mobile)
-		initialState = Caching;
-		game = new FlxGame(gameWidth, gameHeight, initialState, zoom, framerate, framerate, skipSplash, startFullscreen);
-		#else
-		game = new FlxGame(gameWidth, gameHeight, initialState, zoom, framerate, framerate, skipSplash, startFullscreen);
-		#end
 		addChild(game);
-		#if windows
-		DiscordClient.initialize();
 
-		Application.current.onExit.add (function (exitCode) {
-			DiscordClient.shutdown();
-		 });
-		 
-		#end
-
-		//#if !mobile
+		#if !mobile
 		fpsCounter = new FPS(10, 3, 0xFFFFFF);
 		addChild(fpsCounter);
 		toggleFPS(FlxG.save.data.fps);
-		//#end
+
+		#end
 	}
 
+	public static function dumpCache()
+	{
+		///* SPECIAL THANKS TO HAYA
+		@:privateAccess
+		for (key in FlxG.bitmap._cache.keys())
+		{
+			var obj = FlxG.bitmap._cache.get(key);
+			if (obj != null)
+			{
+				Assets.cache.removeBitmapData(key);
+				FlxG.bitmap._cache.remove(key);
+				obj.destroy();
+			}
+		}
+		Assets.cache.clear("songs");
+	}
+	
 	var game:FlxGame;
 
 	var fpsCounter:FPS;

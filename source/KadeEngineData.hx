@@ -1,4 +1,3 @@
-import flixel.input.gamepad.FlxGamepad;
 import openfl.Lib;
 import flixel.FlxG;
 
@@ -6,20 +5,11 @@ class KadeEngineData
 {
     public static function initSave()
     {
-        if (FlxG.save.data.weekUnlocked == null)
-			FlxG.save.data.weekUnlocked = 7;
-
-		if (FlxG.save.data.newInput == null)
+        if (FlxG.save.data.newInput == null)
 			FlxG.save.data.newInput = true;
 
 		if (FlxG.save.data.downscroll == null)
 			FlxG.save.data.downscroll = false;
-
-		if (FlxG.save.data.antialiasing == null)
-			FlxG.save.data.antialiasing = true;
-
-		if (FlxG.save.data.missSounds == null)
-			FlxG.save.data.missSounds = true;
 
 		if (FlxG.save.data.dfjk == null)
 			FlxG.save.data.dfjk = false;
@@ -72,18 +62,12 @@ class KadeEngineData
 
 		if (FlxG.save.data.distractions == null)
 			FlxG.save.data.distractions = true;
-		
-		if (FlxG.save.data.stepMania == null)
-			FlxG.save.data.stepMania = false;
 
 		if (FlxG.save.data.flashing == null)
 			FlxG.save.data.flashing = true;
 
 		if (FlxG.save.data.resetButton == null)
 			FlxG.save.data.resetButton = false;
-
-		if (FlxG.save.data.InstantRespawn == null)
-			FlxG.save.data.InstantRespawn = false;
 		
 		if (FlxG.save.data.botplay == null)
 			FlxG.save.data.botplay = false;
@@ -99,28 +83,6 @@ class KadeEngineData
 
 		if (FlxG.save.data.camzoom == null)
 			FlxG.save.data.camzoom = true;
-
-		if (FlxG.save.data.scoreScreen == null)
-			FlxG.save.data.scoreScreen = true;
-
-		if (FlxG.save.data.inputShow == null)
-			FlxG.save.data.inputShow = false;
-
-		if (FlxG.save.data.optimize == null)
-			FlxG.save.data.optimize = false;
-		
-		if (FlxG.save.data.cacheImages == null)
-			FlxG.save.data.cacheImages = false;
-
-		if (FlxG.save.data.editorBG == null)
-			FlxG.save.data.editor = false;
-		
-		if (FlxG.save.data.zoom == null)
-			FlxG.save.data.zoom = 1;
-
-		var gamepad:FlxGamepad = FlxG.gamepads.lastActive;
-		
-		KeyBinds.gamepad = gamepad != null;
 
 		Conductor.recalculateTimings();
 		PlayerSettings.player1.controls.loadKeyBinds();

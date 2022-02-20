@@ -1,12 +1,5 @@
 package;
 
-import haxe.Exception;
-import lime.app.Application;
-
-#if sys
-import smTools.SMFile;
-import sys.FileSystem;
-#end
 import Controls.KeyboardScheme;
 import Controls.Control;
 import flash.text.TextField;
@@ -44,7 +37,7 @@ class LoadReplayState extends MusicBeatState
         #end
 		trace(controlsStrings);
 
-        controlsStrings.sort(sortByDate);
+        controlsStrings.sort(Reflect.compare);
 
         addWeek(['Bopeebo', 'Fresh', 'Dadbattle'], 1, ['dad']);
         addWeek(['Spookeez', 'South', 'Monster'], 2, ['spooky']);
@@ -61,7 +54,7 @@ class LoadReplayState extends MusicBeatState
             var string:String = controlsStrings[i];
             actualNames[i] = string;
 			var rep:Replay = Replay.LoadReplay(string);
-            controlsStrings[i] = string.split("time")[0] + " " + CoolUtil.difficultyFromInt(rep.replay.songDiff).toUpperCase();
+            controlsStrings[i] = string.split("time")[0] + " " + (rep.replay.songDiff == 2 ? "HARD" : rep.replay.songDiff == 1 ? "EASY" : "NORMAL");
         }
 
         if (controlsStrings.length == 0)
@@ -71,7 +64,7 @@ class LoadReplayState extends MusicBeatState
 		menuBG.setGraphicSize(Std.int(menuBG.width * 1.1));
 		menuBG.updateHitbox();
 		menuBG.screenCenter();
-		menuBG.antialiasing = FlxG.save.data.antialiasing;
+		menuBG.antialiasing = true;
 		add(menuBG);
 
 		grpControls = new FlxTypedGroup<Alphabet>();
@@ -101,13 +94,6 @@ class LoadReplayState extends MusicBeatState
 		changeSelection(0);
 
 		super.create();
-	}
-
-	function sortByDate(a:String, b:String) {
-		var aTime = Std.parseFloat(a.split("time")[1])/1000;
-		var bTime = Std.parseFloat(b.split("time")[1])/1000;
-
-		return Std.int(bTime - aTime); // Newest first
 	}
 
     public function getWeekNumbFromSong(songName:String):Int
@@ -162,78 +148,23 @@ class LoadReplayState extends MusicBeatState
 
                 PlayState.loadRep = true;
 
-				if (PlayState.rep.replay.replayGameVer == Replay.version)
-				{
-
-					// adjusting the song name to be compatible
-					var songFormat = StringTools.replace(PlayState.rep.replay.songName, " ", "-");
-					switch (songFormat) {
-						case 'Dad-Battle': songFormat = 'Dadbattle';
-						case 'Philly-Nice': songFormat = 'Philly';
-						// Replay v1.0 support
-						case 'dad-battle': songFormat = 'Dadbattle';
-						case 'philly-nice': songFormat = 'Philly';
-					}
-
-					var poop = "";
-					
-					#if sys
-					if (PlayState.rep.replay.sm)
-						if (!FileSystem.exists(StringTools.replace(PlayState.rep.replay.chartPath,"converted.json","")))
-						{
-							Application.current.window.alert("The SM file in this replay does not exist!","SM Replays");
-							return;
-						}
-					#end
-
-					PlayState.isSM = PlayState.rep.replay.sm;
-					#if sys
-					if (PlayState.isSM)
-						PlayState.pathToSm = StringTools.replace(PlayState.rep.replay.chartPath,"converted.json","");
-					#end
-
-					#if sys
-					if (PlayState.isSM)
-					{
-						poop = File.getContent(PlayState.rep.replay.chartPath);
-						try
-							{
-						PlayState.sm = SMFile.loadFile(PlayState.pathToSm + "/" + StringTools.replace(PlayState.rep.replay.songName," ", "_") + ".sm");
-							}
-							catch(e:Exception)
-							{
-								Application.current.window.alert("Make sure that the SM file is called " + PlayState.pathToSm + "/" + StringTools.replace(PlayState.rep.replay.songName," ", "_") + ".sm!\nAs I couldn't read it.","SM Replays");
-								return;
-							}
-					}
-					else
-						poop = Highscore.formatSong(songFormat, PlayState.rep.replay.songDiff);
-					#else
-					poop = Highscore.formatSong(songFormat, PlayState.rep.replay.songDiff);
-					#end
-
-					try
-					{
-					if (PlayState.isSM)
-						PlayState.SONG = Song.loadFromJsonRAW(poop);
-					else
-						PlayState.SONG = Song.loadFromJson(poop, PlayState.rep.replay.songName);
-					}
-					catch(e:Exception)
-					{
-						Application.current.window.alert("Failed to load the song! Does the JSON exist?","Replays");
-						return;
-					}
-					PlayState.isStoryMode = false;
-					PlayState.storyDifficulty = PlayState.rep.replay.songDiff;
-					PlayState.storyWeek = getWeekNumbFromSong(PlayState.rep.replay.songName);
-					LoadingState.loadAndSwitchState(new PlayState());
+                // adjusting the song name to be compatible
+				var songFormat = StringTools.replace(PlayState.rep.replay.songName, " ", "-");
+				switch (songFormat) {
+					case 'Dad-Battle': songFormat = 'Dadbattle';
+					case 'Philly-Nice': songFormat = 'Philly';
+					// Replay v1.0 support
+					case 'dad-battle': songFormat = 'Dadbattle';
+					case 'philly-nice': songFormat = 'Philly';
 				}
-				else
-				{
-					PlayState.rep = null;
-					PlayState.loadRep = false;
-				}
+
+				var poop:String = Highscore.formatSong(songFormat, PlayState.rep.replay.songDiff);
+
+				PlayState.SONG = Song.loadFromJson(poop, PlayState.rep.replay.songName);
+                PlayState.isStoryMode = false;
+                PlayState.storyDifficulty = PlayState.rep.replay.songDiff;
+                PlayState.storyWeek = getWeekNumbFromSong(PlayState.rep.replay.songName);
+                LoadingState.loadAndSwitchState(new PlayState());
 			}
 	}
 
@@ -256,7 +187,7 @@ class LoadReplayState extends MusicBeatState
 
 		var rep:Replay = Replay.LoadReplay(actualNames[curSelected]);
 
-		poggerDetails.text = "Replay Details - \nDate Created: " + rep.replay.timestamp + "\nSong: " + rep.replay.songName + "\nReplay Version: " + rep.replay.replayGameVer + ' (' + (rep.replay.replayGameVer != Replay.version ? "OUTDATED not useable!" : "Latest") + ')\n';
+		poggerDetails.text = "Replay Details - \nDate Created: " + rep.replay.timestamp + "\nSong: " + rep.replay.songName + "\nReplay Version: " + rep.replay.replayGameVer + ' (' + (rep.replay.replayGameVer != Replay.version ? "OUTDATED but still usable" : "Latest") + ')\n';
 
 		// selector.y = (70 * curSelected) + 30;
 
